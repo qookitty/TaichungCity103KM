@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>103KM 挑戰組 - Google 地圖匯出與預覽工具</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet.js Map Library -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+        /* Custom scrollbar for premium look */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-height-screen flex flex-col">
+
+    <!-- 頂部導覽列 -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-lime-500 text-slate-950 p-2 rounded-lg font-bold">
+                    <i class="fa-solid fa-bicycle text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight text-white">2026 輪轉台灣百K挑戰賽</h1>
+                    <p class="text-xs text-lime-400">台中站 103KM 騎士地圖匯出助手</p>
+                </div>
+            </div>
+            <div class="flex space-x-2">
+                <a href="#guide" class="text-sm text-slate-400 hover:text-white px-3 py-2 rounded-md transition">匯入教學</a>
+                <a href="#map-section" class="text-sm text-slate-400 hover:text-white px-3 py-2 rounded-md transition">路線地圖</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        
+        <!-- 核心下載與功能區 -->
+        <div class="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl border border-slate-800 p-6 md:p-8 shadow-2xl">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+                <div class="lg:col-span-2 space-y-4">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-lime-500/10 text-lime-400">
+                        <span class="w-2 h-2 rounded-full bg-lime-500 animate-pulse"></span>
+                        支援 Google 地圖與各式車錶
+                    </span>
+                    <h2 class="text-2xl md:text-3xl font-extrabold text-white">一鍵下載 103KM 路線導航檔</h2>
+                    <p class="text-slate-400 leading-relaxed max-w-2xl">
+                        我們為您整理了 103 公里挑戰組的完整路線與關鍵補給點，並轉換為標準地理資訊格式。下載後，只需按照下方教學匯入「Google 我的地圖」，即可在手機上開啟完整導航。
+                    </p>
+                    <div class="flex flex-wrap gap-4 pt-2">
+                        <!-- KML 下載按鈕 (適合 Google 地圖) -->
+                        <button onclick="downloadKML()" class="flex items-center gap-2 px-6 py-3 bg-lime-500 hover:bg-lime-400 text-slate-950 font-bold rounded-xl transition shadow-lg shadow-lime-500/20 active:scale-95">
+                            <i class="fa-solid fa-file-code text-lg"></i>
+                            下載 KML 檔案 (適用 Google 地圖)
+                        </button>
+                        <!-- GPX 下載按鈕 (適合單車車錶) -->
+                        <button onclick="downloadGPX()" class="flex items-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 font-bold rounded-xl transition active:scale-95">
+                            <i class="fa-solid fa-route text-lg text-sky-400"></i>
+                            下載 GPX 檔案 (適用 Garmin/Wahoo/碼錶)
+                        </button>
+                    </div>
+                </div>
+                <div class="bg-slate-950/60 p-5 rounded-xl border border-slate-800 space-y-4">
+                    <h3 class="font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
+                        <i class="fa-solid fa-info-circle text-lime-400"></i> 103KM 路線數據
+                    </h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs text-slate-500">總里程數</p>
+                            <p class="text-xl font-bold text-slate-200">103.1 km</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500">預估時間</p>
+                            <p class="text-xl font-bold text-slate-200">約 5 - 8 小時</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500">累積爬升</p>
+                            <p class="text-xl font-bold text-slate-200">約 480 m</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500">補給站數量</p>
+                            <p class="text-xl font-bold text-slate-200">4 個站點</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Google 地圖匯入教學 -->
+        <section id="guide" class="bg-slate-900/50 rounded-2xl border border-slate-800/80 p-6 md:p-8 space-y-6">
+            <div class="border-b border-slate-800 pb-4">
+                <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-map-location-dot text-sky-400"></i> 如何將路線匯入 Google 地圖？
+                </h3>
+                <p class="text-sm text-slate-400 mt-1">只需 4 個步驟，就能在手機 Google 地圖上跟著走</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <!-- 步驟 1 -->
+                <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 relative overflow-hidden group">
+                    <div class="absolute top-2 right-4 text-5xl font-black text-slate-800/50 group-hover:text-lime-500/10 transition">01</div>
+                    <div class="w-10 h-10 rounded-full bg-sky-500/10 text-sky-400 flex items-center justify-center font-bold mb-4">
+                        <i class="fa-solid fa-download"></i>
+                    </div>
+                    <h4 class="font-bold text-white mb-2">下載 KML 檔案</h4>
+                    <p class="text-xs text-slate-400 leading-relaxed">點擊上方「下載 KML 檔案」按鈕，將檔案保存到您的電腦或手機中。</p>
+                </div>
+                <!-- 步驟 2 -->
+                <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 relative overflow-hidden group">
+                    <div class="absolute top-2 right-4 text-5xl font-black text-slate-800/50 group-hover:text-lime-500/10 transition">02</div>
+                    <div class="w-10 h-10 rounded-full bg-sky-500/10 text-sky-400 flex items-center justify-center font-bold mb-4">
+                        <i class="fa-solid fa-folder-plus"></i>
+                    </div>
+                    <h4 class="font-bold text-white mb-2">前往「我的地圖」</h4>
+                    <p class="text-xs text-slate-400 leading-relaxed">瀏覽器搜尋 <a href="https://www.google.com/maps/about/mymaps/" target="_blank" class="text-lime-400 underline hover:text-lime-300">Google 我的地圖</a>，登入帳號並點擊「建立新地圖」。</p>
+                </div>
+                <!-- 步驟 3 -->
+                <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 relative overflow-hidden group">
+                    <div class="absolute top-2 right-4 text-5xl font-black text-slate-800/50 group-hover:text-lime-500/10 transition">03</div>
+                    <div class="w-10 h-10 rounded-full bg-sky-500/10 text-sky-400 flex items-center justify-center font-bold mb-4">
+                        <i class="fa-solid fa-file-import"></i>
+                    </div>
+                    <h4 class="font-bold text-white mb-2">匯入 KML 檔</h4>
+                    <p class="text-xs text-slate-400 leading-relaxed">點擊左側圖層面版中的「匯入」，上傳剛剛下載的 KML 檔案，路線與地標將會立刻顯示！</p>
+                </div>
+                <!-- 步驟 4 -->
+                <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 relative overflow-hidden group">
+                    <div class="absolute top-2 right-4 text-5xl font-black text-slate-800/50 group-hover:text-lime-500/10 transition">04</div>
+                    <div class="w-10 h-10 rounded-full bg-sky-500/10 text-sky-400 flex items-center justify-center font-bold mb-4">
+                        <i class="fa-solid fa-mobile-screen-button"></i>
+                    </div>
+                    <h4 class="font-bold text-white mb-2">手機開啟導航</h4>
+                    <p class="text-xs text-slate-400 leading-relaxed">打開手機 Google Map App ➔ 點擊「已儲存」 ➔ 「地圖」，點選剛剛建立的地圖即可在騎乘時跟隨！</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 互動地圖與路標預覽 -->
+        <div id="map-section" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- 地圖本體 -->
+            <div class="lg:col-span-2 bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden flex flex-col h-[500px] shadow-lg">
+                <div class="bg-slate-800 px-4 py-3 flex items-center justify-between border-b border-slate-700">
+                    <span class="font-bold text-white flex items-center gap-2 text-sm">
+                        <i class="fa-solid fa-map text-lime-400"></i> 103KM 互動路線預覽
+                    </span>
+                    <span class="text-xs text-slate-400">
+                        縮放地圖並點擊圖標看詳細資訊
+                    </span>
+                </div>
+                <div id="route-map" class="flex-grow z-10"></div>
+            </div>
+
+            <!-- 右側關鍵航點資訊欄 -->
+            <div class="bg-slate-900 rounded-2xl border border-slate-800 p-6 flex flex-col h-[500px]">
+                <h3 class="font-bold text-white text-lg border-b border-slate-800 pb-3 mb-4 flex items-center justify-between">
+                    <span><i class="fa-solid fa-location-crosshairs text-lime-400 mr-2"></i>關鍵航點清單</span>
+                    <span class="text-xs px-2 py-0.5 bg-slate-800 text-slate-400 rounded-full">103KM 組</span>
+                </h3>
+                <div class="flex-grow overflow-y-auto space-y-3 pr-2" id="waypoint-list">
+                    <!-- 節點動態生成 (透過 JS) -->
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 底部資訊頁尾 -->
+    <footer class="bg-slate-950 border-t border-slate-900 py-8 mt-auto text-center text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto px-4 space-y-2">
+            <p>© 2026 輪轉台灣百K挑戰賽台中站。本工具僅供騎乘規劃、預習路線與航點匯入 Google 地圖使用。</p>
+            <p>主辦單位：全統運動用品股份有限公司、臺中市政府運動局</p>
+        </div>
+    </footer>
+
+    <script>
+        // 103KM 組的關鍵地理控制點 (WGS84 座標經緯度)
+        const waypoints = [
+            {
+                name: "起點：高美濕地第二停車場",
+                lat: 24.311370,
+                lng: 120.549925,
+                type: "start",
+                desc: "103K 挑戰組出發會場。請於 05:00 - 05:30 抵達進行車檢與熱身。06:00 準時出發！",
+                mileage: "0K"
+            },
+            {
+                name: "重要路口：三順路/臨港路口",
+                lat: 24.307212,
+                lng: 120.563045,
+                type: "turn",
+                desc: "右轉臨港路，開啟去程平路段。請遵守路口交管人員指示！",
+                mileage: "1.2K"
+            },
+            {
+                name: "重要轉折：向上路/中二路口",
+                lat: 24.225916,
+                lng: 120.531235,
+                type: "turn",
+                desc: "行經向上路後右轉，開始往台中市區方向（東大路段緩坡）切進。",
+                mileage: "14.5K"
+            },
+            {
+                name: "補給站 1：東大路一段",
+                lat: 24.209425,
+                lng: 120.613612,
+                type: "supply",
+                desc: "提供基本飲水、運動飲料與能量補給。此處已接近市區緩坡高點。",
+                mileage: "27K",
+                serviceHours: "服務至 08:30"
+            },
+            {
+                name: "補給站 2 & 關門點：和睦路二段",
+                lat: 24.276020,
+                lng: 120.628030,
+                type: "cutoff",
+                desc: "🚨 大會強制關門點！未於時間內通過此站者，大會將強制安排收容車收容。",
+                mileage: "51K",
+                serviceHours: "服務至 09:30 (強制關門)"
+            },
+            {
+                name: "補給站 3：清水慈雲宮",
+                lat: 24.288910,
+                lng: 120.590830,
+                type: "supply",
+                desc: "提供後半段進入西濱強風海岸線前的最後爬坡與補水支援。",
+                mileage: "66K",
+                serviceHours: "服務至 10:30"
+            },
+            {
+                name: "補給站 4：大安港媽祖文化園區",
+                lat: 24.390500,
+                lng: 120.579600,
+                type: "supply",
+                desc: "進入台61線西濱沿海平路段前的熱量與水分整備，準備迎接海風洗禮！",
+                mileage: "87K",
+                serviceHours: "服務至 12:00"
+            },
+            {
+                name: "終點：高美濕地第二停車場",
+                lat: 24.311370,
+                lng: 120.549925,
+                type: "finish",
+                desc: "終點拱門。限時 8 小時（14:00 前必須返抵終點）。恭喜完賽！請憑號碼布領取完賽好禮。",
+                mileage: "103.1K",
+                serviceHours: "14:00 賽道關閉"
+            }
+        ];
+
+        // 初始化 Leaflet 地圖
+        const map = L.map('route-map').setView([24.311370, 120.57], 11);
+
+        // 使用 OpenStreetMap 圖磚 (採用 dark 墨卡托色調，保持高科技運動美學)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(map);
+
+        // 畫出大略的賽道路徑連線 (主要地標連線以模擬視覺效果)
+        const pathCoordinates = waypoints.map(wp => [wp.lat, wp.lng]);
+        // 回到終點線
+        pathCoordinates.push([waypoints[0].lat, waypoints[0].lng]);
+        
+        const routeLine = L.polyline(pathCoordinates, {
+            color: '#a3e635', // 螢光綠
+            weight: 4,
+            opacity: 0.8,
+            dashArray: '5, 10'
+        }).addTo(map);
+
+        // 縮放地圖至適應整個路線範圍
+        map.fitBounds(routeLine.getBounds(), { padding: [30, 30] });
+
+        // 自訂圖標樣式
+        function getIconForType(type) {
+            let color = '#38bdf8'; // 藍色 (一般)
+            let iconHtml = '<i class="fa-solid fa-circle text-xs"></i>';
+            
+            if (type === 'start') {
+                color = '#a3e635'; // 螢光綠
+                iconHtml = '<i class="fa-solid fa-flag-checkered text-sm"></i>';
+            } else if (type === 'finish') {
+                color = '#f43f5e'; // 紅色
+                iconHtml = '<i class="fa-solid fa-trophy text-sm"></i>';
+            } else if (type === 'supply') {
+                color = '#fbbf24'; // 黃色
+                iconHtml = '<i class="fa-solid fa-utensils text-sm"></i>';
+            } else if (type === 'cutoff') {
+                color = '#ef4444'; // 深紅
+                iconHtml = '<i class="fa-solid fa-triangle-exclamation text-sm animate-pulse"></i>';
+            } else if (type === 'turn') {
+                color = '#c084fc'; // 紫色
+                iconHtml = '<i class="fa-solid fa-right-long text-xs"></i>';
+            }
+
+            return L.divIcon({
+                html: `<div class="w-8 h-8 rounded-full flex items-center justify-center text-slate-950 border-2 border-slate-900 shadow-lg" style="background-color: ${color};">${iconHtml}</div>`,
+                className: 'custom-div-icon',
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+            });
+        }
+
+        // 渲染地標點與建立側邊欄卡片
+        const waypointListContainer = document.getElementById('waypoint-list');
+
+        waypoints.forEach((wp, index) => {
+            // 在地圖上加上標記
+            const marker = L.marker([wp.lat, wp.lng], { icon: getIconForType(wp.type) })
+                .addTo(map)
+                .bindPopup(`
+                    <div class="text-slate-900 font-sans p-1">
+                        <h4 class="font-bold text-sm border-b pb-1 mb-1" style="color: #1e293b">${wp.name} (${wp.mileage})</h4>
+                        ${wp.serviceHours ? `<p class="text-xs font-bold text-rose-600 mb-1"><i class="fa-regular fa-clock"></i> ${wp.serviceHours}</p>` : ''}
+                        <p class="text-xs text-slate-600">${wp.desc}</p>
+                    </div>
+                `);
+
+            // 建立側邊欄資訊卡片
+            const card = document.createElement('div');
+            card.className = "p-4 rounded-xl border border-slate-800 bg-slate-950/80 hover:bg-slate-800/80 transition cursor-pointer space-y-2 group";
+            card.innerHTML = `
+                <div class="flex items-start justify-between">
+                    <h4 class="font-bold text-white text-sm group-hover:text-lime-400 transition flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full" style="background-color: ${
+                            wp.type === 'start' ? '#a3e635' : 
+                            wp.type === 'finish' ? '#f43f5e' : 
+                            wp.type === 'supply' ? '#fbbf24' : 
+                            wp.type === 'cutoff' ? '#ef4444' : '#c084fc'
+                        }"></span>
+                        ${wp.name}
+                    </h4>
+                    <span class="text-xs bg-slate-850 px-2 py-0.5 rounded text-slate-400 font-mono font-semibold">${wp.mileage}</span>
+                </div>
+                ${wp.serviceHours ? `<div class="inline-flex items-center gap-1.5 px-2 py-1 mt-2 rounded bg-rose-500/10 text-rose-400 text-xs font-bold"><i class="fa-regular fa-clock"></i> ${wp.serviceHours}</div>` : ''}
+                <p class="text-xs text-slate-400 leading-relaxed mt-2">${wp.desc}</p>
+                <div class="text-[10px] text-slate-500 font-mono flex items-center gap-3 pt-1 mt-1 border-t border-slate-800">
+                    <span>Lat: ${wp.lat.toFixed(5)}</span>
+                    <span>Lng: ${wp.lng.toFixed(5)}</span>
+                </div>
+            `;
+
+            // 點擊側邊欄卡片時連動定位地圖
+            card.addEventListener('click', () => {
+                map.setView([wp.lat, wp.lng], 14);
+                marker.openPopup();
+                card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            });
+
+            waypointListContainer.appendChild(card);
+        });
+
+        // 生成並下載 KML 檔案的邏輯
+        function downloadKML() {
+            let kml = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>2026 輪轉台灣百K挑戰賽 - 台中站 103KM 挑戰組</name>
+    <description>台中高美濕地起終點，含所有 103KM 補給站與大會重要管制點</description>
+    <Style id="route_line">
+      <LineStyle>
+        <color>ff00ff00</color>
+        <width>5</width>
+      </LineStyle>
+    </Style>
+    <Folder>
+      <name>路線軌跡 (僅供導航參考)</name>
+      <Placemark>
+        <name>103K 挑戰路線軌跡連線</name>
+        <styleUrl>#route_line</styleUrl>
+        <LineString>
+          <tessellate>1</tessellate>
+          <coordinates>
+            ${waypoints.map(wp => `${wp.lng},${wp.lat},0`).join('\n            ')}
+            ${waypoints[0].lng},${waypoints[0].lat},0
+          </coordinates>
+        </LineString>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>關鍵控制站與補給點</name>
+`;
+
+            waypoints.forEach(wp => {
+                const descText = wp.serviceHours ? `[${wp.serviceHours}] ${wp.desc}` : wp.desc;
+                kml += `      <Placemark>
+        <name>${wp.name} (${wp.mileage})</name>
+        <description>${descText}</description>
+        <Point>
+          <coordinates>${wp.lng},${wp.lat},0</coordinates>
+        </Point>
+      </Placemark>
+`;
+            });
+
+            kml += `    </Folder>
+  </Document>
+</kml>`;
+
+            const blob = new Blob([kml], { type: 'application/vnd.google-earth.kml+xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '2026_cycling_taiwan_taichung_103K.kml';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // 生成並下載 GPX 檔案的邏輯
+        function downloadGPX() {
+            let gpx = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Gemini cycling assistant" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+  <metadata>
+    <name>2026 輪轉台灣百K挑戰賽 - 台中站 103KM 挑戰組</name>
+    <desc>台中高美濕地 - 103公里挑戰組路線軌跡與關鍵補給點</desc>
+    <time>2026-05-31T06:00:00Z</time>
+  </metadata>
+`;
+
+            // 加入 Waypoints 到 GPX
+            waypoints.forEach(wp => {
+                const descText = wp.serviceHours ? `[${wp.serviceHours}] ${wp.desc}` : wp.desc;
+                gpx += `  <wpt lat="${wp.lat}" lon="${wp.lng}">
+    <name>${wp.name}</name>
+    <desc>${descText}</desc>
+    <sym>Waypoint</sym>
+  </wpt>
+`;
+            });
+
+            // 加入路線軌跡 Track
+            gpx += `  <trk>
+    <name>103K 挑戰軌跡</name>
+    <trkseg>
+`;
+
+            waypoints.forEach(wp => {
+                gpx += `      <trkpt lat="${wp.lat}" lon="${wp.lng}"></trkpt>\n`;
+            });
+            // 閉合回路回到起點
+            gpx += `      <trkpt lat="${waypoints[0].lat}" lon="${waypoints[0].lng}"></trkpt>\n`;
+
+            gpx += `    </trkseg>
+  </trk>
+</gpx>`;
+
+            const blob = new Blob([gpx], { type: 'application/gpx+xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '2026_cycling_taiwan_taichung_103K.gpx';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
